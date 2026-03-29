@@ -1,0 +1,114 @@
+name: Build TaskReminder
+
+on:
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+    branches: [ main, master, develop ]
+  workflow_dispatch: # 允许手动触发
+
+env:
+  PROJECT_PATH: TaskReminder.csproj
+  OUTPUT_PATH: publish
+  SOLUTION_NAME: TaskReminder.sln
+
+jobs:
+  build:
+    runs-on: windows-latest
+    
+    steps:
+    # 1. 检出代码
+    - name: Checkout
+      uses: actions/checkout@v4
+      
+    # 2. 安装 .NET 8 SDK
+    - name: Setup .NET 8
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+        
+    # 3. 还原 NuGet 包
+    - name: Restore dependencies
+      run: dotnet restore ${{ env.PROJECT_PATH }}
+      
+    # 4. 编译项目
+    - name: Build
+      run: dotnet build ${{ env.PROJECT_PATH }} --configuration Release --no-restore
+      
+    # 5. 运行测试（如果有）
+    - name: Test
+      run: dotnet test ${{ env.SOLUTION_NAME }} --no-build --configuration Release
+      continue-on-error: true
+      
+    # 6. 发布独立版本（包含 .NET 运行时）
+    - name: Publish (Standalone)
+      run: |
+        dotnet publish ${{ env.PROJECT_PATH }} `
+          --configuration Release `
+          --runtime win-x64 `
+          --self-contained true `
+          --output ${{ env.OUTPUT_PATH }}/standalone `
+          -p:PublishSingleFile=true `
+          -p:IncludeNativeLibrariesForSelfExtract=true
+          
+    # 7. 发布依赖框架版本（需要用户安装 .NET 8）
+    - name: Publish (Framework-dependent)
+      run: |
+        dotnet publish ${{ env.PROJECT_PATH }} `
+          --configuration Release `
+          --runtime win-x64 `
+          --self-contained false `
+          --output ${{ env.OUTPUT_PATH }}/framework-dependent
+          
+    # 8. 创建安装包（使用 dotnet publish 输出）
+    - name: Create ZIP archive
+      run: |
+        Compress-Archive -Path "${{ env.OUTPUT_PATH }}/standalone/*" -DestinationPath "${{ env.OUTPUT_PATH }}/TaskReminder-win-x64.zip" -Force
+        
+    # 9. 上传构建产物（独立版）
+    - name: Upload standalone artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: TaskReminder-standalone-win-x64
+        path: ${{ env.OUTPUT_PATH }}/standalone/
+        retention-days: 30
+        
+    # 10. 上传构建产物（依赖框架版）
+    - name: Upload framework-dependent artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: TaskReminder-framework-dependent-win-x64
+        path: ${{ env.OUTPUT_PATH }}/framework-dependent/
+        retention-days: 30
+        
+    # 11. 上传 ZIP 包
+    - name: Upload ZIP package
+      uses: actions/upload-artifact@v4
+      with:
+        name: TaskReminder-win-x64-ZIP
+        path: ${{ env.OUTPUT_PATH }}/TaskReminder-win-x64.zip
+        retention-days: 30
+        
+    # 12. 生成版本信息
+    - name: Generate build info
+      run: |
+        $date = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+        $commit = git rev-parse --short HEAD
+        $branch = git rev-parse --abbrev-ref HEAD
+        @"
+        # Build Information
+        - **Date**: $date
+        - **Commit**: $commit
+        - **Branch**: $branch
+        - **Runtime**: .NET 8.0 (win-x64)
+        - **Mode**: Self-contained (Standalone)
+        
+        ## Artifacts
+        - Standalone version (no .NET required): TaskReminder-standalone-win-x64
+        - Framework-dependent version (requires .NET 8): TaskReminder-framework-dependent-win-x64
+        - ZIP package: TaskReminder-win-x64-ZIP
+        "@ | Out-File -FilePath "${{ env.OUTPUT_PATH }}/BUILD_INFO.md" -Encoding utf8
+        
+    # 13. 输出构建信息
+    - name: Show build info
+      run: cat "${{ env.OUTPUT_PATH }}/BUILD_INFO.md"
