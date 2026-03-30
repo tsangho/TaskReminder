@@ -54,8 +54,8 @@
 
  <!-- 重复间隔 -->
  <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
- <TextBox x:Name="RepeatIntervalTextBox" materialDesign:HintAssist.Hint="每隔" materialDesign:HintAssist.IsFloating="True" Style="{StaticResource MaterialDesignFloatingHintTextBox}" Width="80" Text="1"/>
- <TextBlock x:Name="RepeatUnitText" Text=" 天" VerticalAlignment="Center" Margin="8,0,0,0" Style="{StaticResource MaterialDesignBody1TextBlock}"/>
+ <TextBox x:Name="RepeatIntervalTextBox" materialDesign:HintAssist.Hint="重复间隔" materialDesign:HintAssist.IsFloating="True" materialDesign:HintAssist.HelperText="设置任务每隔多久重复一次" Style="{StaticResource MaterialDesignFloatingHintTextBox}" Width="80" Text="1"/>
+ <TextBlock x:Name="RepeatUnitText" Text=" 天" VerticalAlignment="Center" Margin="8,0,0,0" Style="{StaticResource MaterialDesignBody1TextBlock}" ToolTip="根据上方选择的重复类型自动更新单位"/>
  </StackPanel>
  </StackPanel>
  </ScrollViewer>

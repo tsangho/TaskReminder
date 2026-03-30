@@ -16,6 +16,7 @@ public partial class MainWindow : Window
     private readonly NotificationService _notificationService;
     private readonly ReminderChecker _reminderChecker;
     private bool _isClosing = false;
+    private string _currentFilter = "all"; // Bug 4: 按周期筛选
 
     public MainWindow()
     {
@@ -252,6 +253,47 @@ public partial class MainWindow : Window
     }
 
     /// <summary>
+    /// 按周期筛选任务（Bug 4 修复）
+    /// </summary>
+    private void FilterRepeatType_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (FilterRepeatTypeComboBox.SelectedItem is ComboBoxItem selectedItem)
+        {
+            _currentFilter = selectedItem.Tag?.ToString() ?? "all";
+            ApplyTaskFilter();
+        }
+    }
+
+    /// <summary>
+    /// 应用任务筛选
+    /// </summary>
+    private void ApplyTaskFilter()
+    {
+        if (_viewModel?.Tasks == null) return;
+
+        if (_currentFilter == "all")
+        {
+            TaskListView.ItemsSource = _viewModel.Tasks;
+        }
+        else
+        {
+            // 按重复类型筛选
+            var filteredTasks = _viewModel.Tasks.Where(t => 
+                t.RepeatType switch
+                {
+                    "每天" => "1",
+                    "每周" => "2",
+                    "每月" => "3",
+                    "每季度" => "4",
+                    "每年" => "5",
+                    _ => "0"
+                } == _currentFilter).ToList();
+            TaskListView.ItemsSource = filteredTasks;
+        }
+        UpdateTaskCount();
+    }
+
+    /// <summary>
     /// 显示任务详情
     /// </summary>
     private void ShowTaskDetail(TaskItem task)
@@ -301,7 +343,7 @@ public partial class MainWindow : Window
         var repeatPanel = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 8, 0, 0) };
         var repeatText = new TextBlock
         {
-            Text = $"🔄 重复：{task.RepeatType} (每{task.RepeatInterval}个单位)",
+            Text = $"🔄 重复：{task.RepeatType}",
             Style = (Style)FindResource("MaterialDesignBody1TextBlock"),
             VerticalAlignment = VerticalAlignment.Center
         };

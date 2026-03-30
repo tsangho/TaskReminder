@@ -9,6 +9,26 @@
                 <materialDesign:BundledTheme BaseTheme="Light" PrimaryColor="DeepPurple" SecondaryColor="Lime" />
                 <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesign3.Defaults.xaml" />
             </ResourceDictionary.MergedDictionaries>
+            
+            <!-- 字体渲染优化（修复字体模糊 Bug 5） -->
+            <Style TargetType="{x:Type Window}">
+                <Setter Property="FontFamily" Value="Segoe UI, Microsoft YaHei"/>
+                <Setter Property="TextOptions.TextFormattingMode" Value="Display"/>
+                <Setter Property="TextOptions.TextRenderingMode" Value="ClearType"/>
+                <Setter Property="TextOptions.TextHintingMode" Value="Fixed"/>
+            </Style>
+            
+            <Style TargetType="{x:Type TextBlock}">
+                <Setter Property="TextOptions.TextFormattingMode" Value="Display"/>
+                <Setter Property="TextOptions.TextRenderingMode" Value="ClearType"/>
+                <Setter Property="TextOptions.TextHintingMode" Value="Fixed"/>
+            </Style>
+            
+            <Style TargetType="{x:Type TextBox}">
+                <Setter Property="TextOptions.TextFormattingMode" Value="Display"/>
+                <Setter Property="TextOptions.TextRenderingMode" Value="ClearType"/>
+                <Setter Property="TextOptions.TextHintingMode" Value="Fixed"/>
+            </Style>
         </ResourceDictionary>
     </Application.Resources>
 </Application>
