@@ -238,6 +238,166 @@ TaskReminder/
 
 ---
 
+## 六、阶段 2 完成报告（2026-03-30 09:30）
+
+### 任务完成情况
+
+| 功能 | 状态 | 说明 |
+|------|------|------|
+| **系统托盘集成** | ✅ 完成 | 使用 Hardcodet.NotifyIcon.Wpf 实现 |
+| **定时检查器** | ✅ 完成 | 使用 System.Threading.Timer |
+| **Windows Toast 通知** | ✅ 完成 | 使用 Microsoft.Windows.AppNotifications |
+
+### 实现细节
+
+#### 1. 系统托盘集成 (TrayIconService.cs)
+
+**使用的 NuGet 包：** `Hardcodet.NotifyIcon.Wpf` v1.1.0
+
+**功能实现：**
+- ✅ 托盘图标显示（带自定义图标）
+- ✅ 托盘右键菜单（显示主界面、退出程序）
+- ✅ 左键单击/双击托盘图标显示主界面
+- ✅ 最小化到托盘功能（窗口关闭按钮变为最小化到托盘）
+- ✅ 托盘气泡提示（BalloonTip）
+- ✅ 完整的资源释放（Dispose）
+
+**关键代码：**
+```csharp
+// 创建托盘图标
+_trayIcon = new TaskbarIcon
+{
+    ToolTipText = "任务提醒工具",
+    Visibility = Visibility.Visible
+};
+
+// 最小化到托盘
+public void MinimizeToTray()
+{
+    _mainWindow.Hide();
+    _mainWindow.ShowInTaskbar = false;
+    _trayIcon?.ShowBalloonTip("任务提醒", "已最小化到托盘", BalloonIcon.Info);
+}
+```
+
+#### 2. 定时检查器 (ReminderChecker.cs)
+
+**使用的 Timer 类型：** `System.Threading.Timer`
+
+**功能实现：**
+- ✅ 每 60 秒（1分钟）检查一次到期任务
+- ✅ 检测条件：`DueDate <= Now && IsCompleted == false`
+- ✅ 60分钟内不重复提醒同一任务
+- ✅ 触发通知后更新数据库（LastReminderTime）
+- ✅ 支持重复任务自动计算下次到期时间
+- ✅ 防止并发执行（_isRunning 标志）
+- ✅ 完整资源释放（Dispose）
+
+**关键代码：**
+```csharp
+// 创建 System.Threading.Timer
+_timer = new Timer(
+    CheckRemindersCallback,
+    null,
+    Timeout.Infinite,  // 稍后手动启动
+    CHECK_INTERVAL_MS  // 60秒
+);
+
+// 检查逻辑
+if (task.DueDate <= now && !task.IsCompleted)
+{
+    if (task.LastReminderTime == null || 
+        (now - task.LastReminderTime.Value).TotalMinutes >= 60)
+    {
+        _notificationService.ShowTaskReminder(task.Title, task.Description, task.Id);
+        await UpdateLastReminderTimeAsync(task);
+    }
+}
+```
+
+#### 3. Windows Toast 通知 (NotificationService.cs)
+
+**使用的 API：** `Microsoft.Windows.AppNotifications` (Windows App SDK)
+
+**功能实现：**
+- ✅ 显示任务标题 + 描述
+- ✅ 支持"标记完成"按钮（点击后触发 OnMarkCompleteRequested 事件）
+- ✅ 支持"查看详情"按钮（点击后触发 OnViewDetailRequested 事件）
+- ✅ 点击通知主体打开应用
+- ✅ 通知分组管理（Tag + Group）
+- ✅ 5分钟超时设置
+- ✅ 降级处理（Console.WriteLine）
+
+**关键代码：**
+```csharp
+var builder = new AppNotificationBuilder()
+    .AddText(title)
+    .AddText(message);
+
+// 添加按钮
+builder.AddButton(new AppNotificationButton("标记完成")
+    .AddArgument("action", "mark_complete")
+    .AddArgument("taskId", taskId.ToString()));
+
+builder.AddButton(new AppNotificationButton("查看详情")
+    .AddArgument("action", "view_detail")
+    .AddArgument("taskId", taskId.ToString()));
+
+var notification = builder.BuildNotification();
+notification.Tag = "task-reminder";
+notification.Group = "TaskReminder";
+AppNotificationManager.Default.Show(notification);
+
+// 处理按钮点击
+_notificationManager.NotificationInvoked += OnNotificationInvoked;
+```
+
+### 项目文件更新清单
+
+| 文件 | 操作 | 说明 |
+|------|------|------|
+| TaskReminder.csproj | 更新 | 添加 Hardcodet.NotifyIcon.Wpf, Microsoft.WindowsAppSDK |
+| Services/TrayIconService.cs | 重写 | 使用 Hardcodet.NotifyIcon.Wpf |
+| Services/NotificationService.cs | 重写 | 使用 Microsoft.Windows.AppNotifications |
+| Services/ReminderChecker.cs | 重写 | 使用 System.Threading.Timer |
+| MainWindow.xaml.cs | 更新 | 集成通知事件处理 |
+| Models/TaskItem.cs | 更新 | 添加 CompletedTime 字段 |
+| Data/DatabaseService.cs | 更新 | 支持 CompletedTime 字段 |
+
+### 编译说明
+
+**环境要求：**
+- .NET 8 SDK
+- Windows 10 SDK (10.0.19041.0+)
+- Windows App SDK
+
+**编译命令：**
+```bash
+cd /home/ho_tsang/task-reminder/TaskReminder
+dotnet restore
+dotnet build
+```
+
+**目标框架：** `net8.0-windows10.0.19041.0`
+
+---
+
+## 七、下一步计划
+
+### 待完成功能（中优先级）
+1. [ ] 编译测试和 bug 修复
+2. [ ] 开机自启功能（任务计划程序）
+3. [ ] 设置界面
+4. [ ] 提前提醒功能（5/10/15/30 分钟）
+
+### 优化项（低优先级）
+1. [ ] 任务分类/标签
+2. [ ] 深色模式切换
+3. [ ] 声音提醒开关
+4. [ ] 数据导出/导入
+
+---
+
 **汇报人：** 猫工头（Subagent）  
-**汇报时间：** 2026-03-29 23:30  
-**状态：** 基础 UI 开发完成，等待编译测试
+**汇报时间：** 2026-03-30 09:30  
+**状态：** ✅ Stage 2 核心功能完成

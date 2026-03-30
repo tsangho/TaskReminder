@@ -1,19 +1,15 @@
-using System;
 using System.Windows;
-using System.Windows.Forms;
-using Application = System.Windows.Application;
-using Cursor = System.Windows.Input.Cursor;
-using MessageBox = System.Windows.MessageBox;
+using Hardcodet.Wpf.TaskbarNotification;
 
 namespace TaskReminder.Services;
 
 /// <summary>
 /// 系统托盘图标服务
-/// 提供最小化到托盘、托盘菜单等功能
+/// 使用 Hardcodet.NotifyIcon.Wpf 实现托盘图标、菜单和最小化到托盘功能
 /// </summary>
 public class TrayIconService : IDisposable
 {
-    private NotifyIcon? _trayIcon;
+    private TaskbarIcon? _trayIcon;
     private Window? _mainWindow;
     private bool _disposed;
 
@@ -25,28 +21,74 @@ public class TrayIconService : IDisposable
     {
         _mainWindow = window;
 
-        // 创建托盘图标（使用系统图标作为默认）
-        _trayIcon = new NotifyIcon
+        // 创建托盘图标
+        _trayIcon = new TaskbarIcon
         {
-            Icon = System.Drawing.SystemIcons.Application,
-            Text = "任务提醒",
-            Visible = true
+            ToolTipText = "任务提醒工具",
+            Visibility = Visibility.Visible
         };
 
-        // 创建托盘菜单
-        var contextMenu = new ContextMenu();
+        // 设置默认图标（使用系统图标）
+        _trayIcon.IconSource = CreateDefaultIcon();
         
-        // 显示主界面菜单项
-        var showMenuItem = new MenuItem("显示主界面", OnShowMenuItemClick);
-        
-        // 退出菜单项
-        var exitMenuItem = new MenuItem("退出", OnExitMenuItemClick);
-        
-        contextMenu.MenuItems.AddRange(new[] { showMenuItem, exitMenuItem });
-        _trayIcon.ContextMenu = contextMenu;
+        // 创建上下文菜单
+        _trayIcon.ContextMenu = CreateContextMenu();
 
-        // 点击托盘图标打开主界面
-        _trayIcon.MouseClick += OnTrayIconClick;
+        // 点击托盘图标左键显示主界面
+        _trayIcon.TrayLeftMouseDown += OnTrayLeftMouseDown;
+        
+        // 双击托盘图标显示主界面
+        _trayIcon.TrayMouseDoubleClick += OnTrayDoubleClick;
+    }
+
+    /// <summary>
+    /// 创建默认图标
+    /// </summary>
+    private System.Windows.Media.ImageSource CreateDefaultIcon()
+    {
+        // 使用系统信息图标
+        var iconUri = new Uri("pack://application:,,,/Assets/icon.ico", UriKind.Absolute);
+        try
+        {
+            return new System.Windows.Media.Imaging.BitmapImage(iconUri);
+        }
+        catch
+        {
+            // 如果图标加载失败，返回 null
+            return null!;
+        }
+    }
+
+    /// <summary>
+    /// 创建上下文菜单
+    /// </summary>
+    private System.Windows.Controls.ContextMenu CreateContextMenu()
+    {
+        var contextMenu = new System.Windows.Controls.ContextMenu();
+
+        // 显示主界面菜单项
+        var showMenuItem = new System.Windows.Controls.MenuItem
+        {
+            Header = "显示主界面",
+            FontWeight = FontWeights.Bold
+        };
+        showMenuItem.Click += OnShowMenuItemClick;
+
+        // 分隔线
+        var separator = new System.Windows.Controls.Separator();
+
+        // 退出菜单项
+        var exitMenuItem = new System.Windows.Controls.MenuItem
+        {
+            Header = "退出程序"
+        };
+        exitMenuItem.Click += OnExitMenuItemClick;
+
+        contextMenu.Items.Add(showMenuItem);
+        contextMenu.Items.Add(separator);
+        contextMenu.Items.Add(exitMenuItem);
+
+        return contextMenu;
     }
 
     /// <summary>
@@ -59,6 +101,12 @@ public class TrayIconService : IDisposable
             _mainWindow.WindowState = WindowState.Minimized;
             _mainWindow.ShowInTaskbar = false;
             _mainWindow.Hide();
+            
+            // 显示气泡提示
+            _trayIcon?.ShowBalloonTip(
+                "任务提醒",
+                "程序已最小化到系统托盘，双击图标可恢复窗口。",
+                BalloonIcon.Info);
         }
     }
 
@@ -76,46 +124,54 @@ public class TrayIconService : IDisposable
         }
     }
 
-    private void OnTrayIconClick(object? sender, MouseEventArgs e)
-    {
-        if (e.Button == MouseButtons.Left)
-        {
-            RestoreFromTray();
-        }
-    }
-
-    private void OnShowMenuItemClick(object? sender, EventArgs e)
+    private void OnTrayLeftMouseDown(object sender, RoutedEventArgs e)
     {
         RestoreFromTray();
     }
 
-    /// <summary>
-    /// 显式显示主窗口（从托盘恢复）
-    /// </summary>
-    public void ShowMainWindow()
+    private void OnTrayDoubleClick(object sender, RoutedEventArgs e)
     {
         RestoreFromTray();
     }
 
-    private void OnExitMenuItemClick(object? sender, EventArgs e)
+    private void OnShowMenuItemClick(object sender, RoutedEventArgs e)
     {
-        var result = MessageBox.Show(
-            "确定要退出任务提醒吗？",
+        RestoreFromTray();
+    }
+
+    private void OnExitMenuItemClick(object sender, RoutedEventArgs e)
+    {
+        var result = System.Windows.MessageBox.Show(
+            "确定要退出任务提醒工具吗？",
             "确认退出",
             MessageBoxButton.YesNo,
             MessageBoxImage.Question);
 
         if (result == MessageBoxResult.Yes)
         {
+            // 强制退出，不最小化到托盘
             Application.Current.Shutdown();
         }
+    }
+
+    /// <summary>
+    /// 显示气泡通知
+    /// </summary>
+    public void ShowBalloonTip(string title, string message, BalloonIcon icon = BalloonIcon.Info)
+    {
+        _trayIcon?.ShowBalloonTip(title, message, icon);
     }
 
     public void Dispose()
     {
         if (!_disposed)
         {
-            _trayIcon?.Dispose();
+            if (_trayIcon != null)
+            {
+                _trayIcon.TrayLeftMouseDown -= OnTrayLeftMouseDown;
+                _trayIcon.TrayMouseDoubleClick -= OnTrayDoubleClick;
+                _trayIcon.Dispose();
+            }
             _disposed = true;
         }
     }

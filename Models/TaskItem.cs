@@ -10,6 +10,7 @@ public class TaskItem
     public int RepeatInterval { get; set; }
     public bool IsCompleted { get; set; }
     public DateTime? LastReminderTime { get; set; }
+    public DateTime? CompletedTime { get; set; }
     public DateTime CreatedAt { get; set; }
 }
 

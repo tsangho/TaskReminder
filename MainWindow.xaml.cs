@@ -31,15 +31,22 @@ public partial class MainWindow : Window
 
         // 初始化通知服务
         _notificationService = new NotificationService();
+        
+        // 订阅通知按钮事件
+        _notificationService.OnMarkCompleteRequested += OnMarkCompleteRequested;
+        _notificationService.OnViewDetailRequested += OnViewDetailRequested;
 
         // 初始化托盘图标服务
         _trayIconService = new TrayIconService();
         _trayIconService.Initialize(this);
 
-        // 初始化定时检查器
+        // 初始化定时检查器（使用 System.Threading.Timer）
         _reminderChecker = new ReminderChecker(_databaseService, _notificationService);
         _reminderChecker.Start();
 
+        // 注册窗口状态改变事件
+        StateChanged += MainWindow_StateChanged;
+        
         // 注册窗口关闭事件
         Closing += MainWindow_Closing;
 
@@ -47,9 +54,24 @@ public partial class MainWindow : Window
         _ = LoadTasksAsync();
     }
 
+    /// <summary>
+    /// 窗口状态改变事件
+    /// </summary>
+    private void MainWindow_StateChanged(object? sender, EventArgs e)
+    {
+        // 如果最小化且不是正在关闭，则最小化到托盘
+        if (WindowState == WindowState.Minimized && !_isClosing)
+        {
+            _trayIconService.MinimizeToTray();
+        }
+    }
+
+    /// <summary>
+    /// 窗口关闭事件
+    /// </summary>
     private void MainWindow_Closing(object? sender, System.ComponentModel.CancelEventArgs e)
     {
-        // 如果不是主动退出，则最小化到托盘
+        // 如果不是强制退出，则最小化到托盘而不是关闭
         if (!_isClosing && e != null)
         {
             e.Cancel = true;
@@ -57,15 +79,25 @@ public partial class MainWindow : Window
         }
     }
 
+    /// <summary>
+    /// 强制关闭程序（用于退出菜单项）
+    /// </summary>
+    public void ForceClose()
+    {
+        _isClosing = true;
+        Close();
+    }
+
     private async Task InitializeDatabaseAsync()
     {
         try
         {
             await _databaseService.InitializeAsync();
+            Console.WriteLine("[MainWindow] 数据库初始化完成");
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"数据库初始化失败:{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+            MessageBox.Show($"数据库初始化失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
 
@@ -80,7 +112,7 @@ public partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            UpdateStatus($"加载失败:{ex.Message}");
+            UpdateStatus($"加载失败: {ex.Message}");
         }
     }
 
@@ -115,7 +147,7 @@ public partial class MainWindow : Window
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show($"添加任务失败:{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show($"添加任务失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
         }
@@ -144,7 +176,7 @@ public partial class MainWindow : Window
                     }
                     catch (Exception ex)
                     {
-                        MessageBox.Show($"更新任务失败:{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                        MessageBox.Show($"更新任务失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
                     }
                 }
             }
@@ -188,7 +220,7 @@ public partial class MainWindow : Window
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show($"删除任务失败:{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show($"删除任务失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
         }
@@ -256,10 +288,10 @@ public partial class MainWindow : Window
 
         // 到期时间
         var dueDatePanel = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 16, 0, 0) };
-        var clockIcon = new materialDesign:PackIcon { Kind = materialDesign:PackIconKind.ClockOutline, Width = 18, Height = 18, VerticalAlignment = VerticalAlignment.Center };
+        var clockIcon = new MaterialDesignThemes.PackIcon { Kind = MaterialDesignThemes.PackIconKind.ClockOutline, Width = 18, Height = 18, VerticalAlignment = VerticalAlignment.Center };
         var dueDateText = new TextBlock
         {
-            Text = $"到期时间:{task.DueDate:yyyy-MM-dd HH:mm}",
+            Text = $"到期时间: {task.DueDate:yyyy-MM-dd HH:mm}",
             Style = (Style)FindResource("MaterialDesignBody1TextBlock"),
             Margin = new Thickness(8, 0, 0, 0),
             VerticalAlignment = VerticalAlignment.Center
@@ -270,10 +302,10 @@ public partial class MainWindow : Window
 
         // 重复类型
         var repeatPanel = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 8, 0, 0) };
-        var repeatIcon = new materialDesign:PackIcon { Kind = materialDesign:PackIconKind.Repeat, Width = 18, Height = 18, VerticalAlignment = VerticalAlignment.Center };
+        var repeatIcon = new MaterialDesignThemes.PackIcon { Kind = MaterialDesignThemes.PackIconKind.Repeat, Width = 18, Height = 18, VerticalAlignment = VerticalAlignment.Center };
         var repeatText = new TextBlock
         {
-            Text = $"重复:{task.RepeatType} (每{task.RepeatInterval}个单位)",
+            Text = $"重复: {task.RepeatType} (每{task.RepeatInterval}个单位)",
             Style = (Style)FindResource("MaterialDesignBody1TextBlock"),
             Margin = new Thickness(8, 0, 0, 0),
             VerticalAlignment = VerticalAlignment.Center
@@ -284,16 +316,16 @@ public partial class MainWindow : Window
 
         // 状态
         var statusPanel = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 8, 0, 0) };
-        var statusIcon = new materialDesign:PackIcon
+        var statusIcon = new MaterialDesignThemes.PackIcon
         {
-            Kind = task.IsCompleted ? materialDesign:PackIconKind.CheckCircle : materialDesign:PackIconKind.CircleOutline,
+            Kind = task.IsCompleted ? MaterialDesignThemes.PackIconKind.CheckCircle : MaterialDesignThemes.PackIconKind.CircleOutline,
             Width = 18,
             Height = 18,
             VerticalAlignment = VerticalAlignment.Center
         };
         var statusText = new TextBlock
         {
-            Text = $"状态:{(task.IsCompleted ? "已完成" : "未完成")}",
+            Text = $"状态: {(task.IsCompleted ? "已完成" : "未完成")}",
             Style = (Style)FindResource("MaterialDesignBody1TextBlock"),
             Margin = new Thickness(8, 0, 0, 0),
             VerticalAlignment = VerticalAlignment.Center
@@ -304,10 +336,10 @@ public partial class MainWindow : Window
 
         // 创建时间
         var createdPanel = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 8, 0, 0) };
-        var calendarIcon = new materialDesign:PackIcon { Kind = materialDesign:PackIconKind.CalendarPlus, Width = 18, Height = 18, VerticalAlignment = VerticalAlignment.Center };
+        var calendarIcon = new MaterialDesignThemes.PackIcon { Kind = MaterialDesignThemes.PackIconKind.CalendarPlus, Width = 18, Height = 18, VerticalAlignment = VerticalAlignment.Center };
         var createdText = new TextBlock
         {
-            Text = $"创建时间:{task.CreatedAt:yyyy-MM-dd HH:mm}",
+            Text = $"创建时间: {task.CreatedAt:yyyy-MM-dd HH:mm}",
             Style = (Style)FindResource("MaterialDesignBody1TextBlock"),
             Margin = new Thickness(8, 0, 0, 0),
             VerticalAlignment = VerticalAlignment.Center,
@@ -343,13 +375,77 @@ public partial class MainWindow : Window
     }
 
     /// <summary>
+    /// 处理通知中的"标记完成"按钮点击
+    /// </summary>
+    private async void OnMarkCompleteRequested(int taskId)
+    {
+        try
+        {
+            var task = await _databaseService.GetByIdAsync(taskId);
+            if (task != null)
+            {
+                task.IsCompleted = true;
+                task.CompletedTime = DateTime.Now;
+                task.LastReminderTime = DateTime.Now; // 防止重复提醒
+                await _databaseService.UpdateAsync(task);
+                
+                // 刷新列表
+                await LoadTasksAsync();
+                
+                // 显示完成确认
+                _trayIconService.ShowBalloonTip(
+                    "任务已完成",
+                    $"任务 \"{task.Title}\" 已标记为完成",
+                    Hardcodet.Wpf.TaskbarNotification.BalloonIcon.Info);
+                    
+                Console.WriteLine($"[MainWindow] 任务 \"{task.Title}\" 已通过通知按钮标记为完成");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[MainWindow] 标记任务完成失败: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// 处理通知中的"查看详情"按钮点击
+    /// </summary>
+    private void OnViewDetailRequested(int taskId)
+    {
+        try
+        {
+            // 显示并激活主窗口
+            ShowFromTray();
+            
+            // 在任务列表中找到对应的任务并选中
+            var task = _viewModel.Tasks?.FirstOrDefault(t => t.Id == taskId);
+            if (task != null)
+            {
+                TaskListView.SelectedItem = task;
+                ShowTaskDetail(task);
+            }
+            
+            Console.WriteLine($"[MainWindow] 请求查看任务 ID: {taskId}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[MainWindow] 查看任务详情失败: {ex.Message}");
+        }
+    }
+
+    /// <summary>
     /// 清理资源
     /// </summary>
     protected override void OnClosed(EventArgs e)
     {
+        _notificationService.OnMarkCompleteRequested -= OnMarkCompleteRequested;
+        _notificationService.OnViewDetailRequested -= OnViewDetailRequested;
+        
         _trayIconService?.Dispose();
         _reminderChecker?.Stop();
         _reminderChecker?.Dispose();
+        _notificationService?.Dispose();
+        
         base.OnClosed(e);
     }
 }
