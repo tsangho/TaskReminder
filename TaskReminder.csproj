@@ -12,13 +12,7 @@
     <Product>任务提醒工具</Product>
     <Description>Windows 定时任务提醒工具</Description>
     <RuntimeIdentifiers>win-x64;win-x86</RuntimeIdentifiers>
-    <!-- 图标资源 -->
-    <ApplicationIcon>icon.ico</ApplicationIcon>
   </PropertyGroup>
-
-  <ItemGroup>
-    <Resource Include="icon.ico" />
-  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="MaterialDesignThemes" Version="5.0.0" />
