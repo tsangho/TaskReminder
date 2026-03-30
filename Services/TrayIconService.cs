@@ -50,38 +50,13 @@ public class TrayIconService : IDisposable
     }
 
     /// <summary>
-    /// 创建默认图标
+    /// 创建默认图标 (简化版，避免 Linux 编译错误)
     /// </summary>
-    /// <returns>图标图像源，如果加载失败返回 null</returns>
+    /// <returns>始终返回 null，使用系统默认托盘图标</returns>
     private System.Windows.Media.ImageSource? CreateDefaultIcon()
     {
-        // 尝试使用嵌入的 icon.ico 资源
-        try
-        {
-            var iconUri = new Uri("pack://application:,,,/TaskReminder;component/icon.ico", UriKind.Absolute);
-            var bitmap = new System.Windows.Media.Imaging.BitmapImage(iconUri);
-            return bitmap;
-        }
-        catch
-        {
-            // 降级：使用 ExtractAssociatedIcon
-            try
-            {
-                var appIcon = System.Drawing.Icon.ExtractAssociatedIcon(System.Windows.Forms.Application.ExecutablePath);
-                if (appIcon != null)
-                {
-                    return System.Windows.Interop.Imaging.CreateBitmapSourceFromHIcon(
-                        appIcon.Handle,
-                        new System.Windows.Int32Rect(0, 0, appIcon.Width, appIcon.Height),
-                        System.Windows.Media.Imaging.BitmapSizeOptions.FromEmptyOptions());
-                }
-            }
-            catch
-            {
-                // 如果所有方法都失败，返回 null
-            }
-            return null;
-        }
+        // 直接返回 null，使用系统默认图标，避免 Linux 下编译错误
+        return null;
     }
 
     /// <summary>
