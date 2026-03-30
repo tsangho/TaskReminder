@@ -1,4 +1,5 @@
 using System.Windows;
+using System.Windows.Controls;
 using TaskReminder.Models;
 
 namespace TaskReminder.Views;
@@ -58,13 +59,44 @@ public partial class AddEditTaskDialog : Window
             // 设置重复类型
             RepeatTypeComboBox.SelectedIndex = (int)_existingTask.RepeatType;
             RepeatIntervalTextBox.Text = _existingTask.RepeatInterval.ToString();
+            
+            // 更新单位显示
+            UpdateRepeatUnitText();
         }
         else
         {
             // 新建模式：默认当前日期，9 点
             DueDatePicker.SelectedDate = DateTime.Today;
             RepeatTypeComboBox.SelectedIndex = 0;
+            UpdateRepeatUnitText();
         }
+    }
+
+    /// <summary>
+    /// 根据重复类型更新单位显示文本
+    /// </summary>
+    private void UpdateRepeatUnitText()
+    {
+        var selectedIndex = RepeatTypeComboBox.SelectedIndex;
+        string unitText = selectedIndex switch
+        {
+            1 => " 天",      // 每天
+            2 => " 周",      // 每周
+            3 => " 月",      // 每月
+            4 => " 季度",    // 每季度
+            5 => " 年",      // 每年
+            _ => " 次"       // 不重复
+        };
+        
+        if (RepeatUnitText != null)
+        {
+            RepeatUnitText.Text = unitText;
+        }
+    }
+
+    private void RepeatTypeComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        UpdateRepeatUnitText();
     }
 
     private void SaveButton_Click(object sender, RoutedEventArgs e)
@@ -87,7 +119,6 @@ public partial class AddEditTaskDialog : Window
         var dueDate = DueDatePicker.SelectedDate.Value;
         var hour = int.Parse(HourComboBox.SelectedItem?.ToString() ?? "09");
         var minute = int.Parse(MinuteComboBox.SelectedItem?.ToString() ?? "00");
-        
         dueDate = dueDate.AddHours(hour).AddMinutes(minute);
 
         var repeatTypeIndex = RepeatTypeComboBox.SelectedIndex;

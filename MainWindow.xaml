@@ -59,7 +59,7 @@
                                        Margin="4,0,0,0"
                                        Opacity="0.6">
                                 <TextBlock.Text>
-                                    <MultiBinding StringFormat="{}{0} - 每{1}个单位">
+                                    <MultiBinding StringFormat="{}{0} - 每隔{1}个单位">
                                         <Binding Path="RepeatType"/>
                                         <Binding Path="RepeatInterval"/>
                                     </MultiBinding>

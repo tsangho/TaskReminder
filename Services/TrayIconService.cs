@@ -58,14 +58,29 @@ public class TrayIconService : IDisposable
         // 尝试使用系统内置图标
         try
         {
-            // 使用资源字典中的图标
-            var iconUri = new Uri("pack://application:,,,/TaskReminder;component/Assets/icon.ico", UriKind.Absolute);
+            // 使用系统内置的应用程序图标作为托盘图标
+            var iconUri = new Uri("pack://application:,,,/TaskReminder;component/App.ico", UriKind.Absolute);
             var bitmap = new System.Windows.Media.Imaging.BitmapImage(iconUri);
             return bitmap;
         }
         catch
         {
-            // 如果图标加载失败，返回 null（托盘图标将不显示）
+            try
+            {
+                // 尝试使用应用程序的默认图标
+                var appIcon = System.Drawing.Icon.ExtractAssociatedIcon(System.Windows.Forms.Application.ExecutablePath);
+                if (appIcon != null)
+                {
+                    return System.Windows.Interop.Imaging.CreateBitmapSourceFromHIcon(
+                        appIcon.Handle,
+                        new System.Windows.Int32Rect(0, 0, appIcon.Width, appIcon.Height),
+                        System.Windows.Media.Imaging.BitmapSizeOptions.FromEmptyOptions());
+                }
+            }
+            catch
+            {
+                // 如果所有方法都失败，返回 null
+            }
             return null;
         }
     }
@@ -128,10 +143,15 @@ public class TrayIconService : IDisposable
     {
         if (_mainWindow != null)
         {
+            // 先隐藏再显示，刷新渲染上下文，防止黑屏
+            _mainWindow.Hide();
             _mainWindow.Show();
             _mainWindow.WindowState = WindowState.Normal;
             _mainWindow.Activate();
             _mainWindow.ShowInTaskbar = true;
+            
+            // 强制刷新窗口内容
+            _mainWindow.InvalidateVisual();
         }
     }
 
