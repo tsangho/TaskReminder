@@ -109,7 +109,7 @@ public partial class MainWindow : Window
             await _viewModel.LoadTasksAsync();
             TaskListView.ItemsSource = _viewModel.Tasks;
             UpdateTaskCount();
-            UpdateStatus(_viewModel.StatusMessage);
+            UpdateStatus(_viewModel.StatusMessage ?? "");
         }
         catch (Exception ex)
         {
@@ -143,7 +143,7 @@ public partial class MainWindow : Window
                 {
                     await _viewModel.AddTaskAsync(dialog.ResultTask);
                     UpdateTaskCount();
-                    UpdateStatus(_viewModel.StatusMessage);
+                    UpdateStatus(_viewModel.StatusMessage ?? "");
                 }
                 catch (Exception ex)
                 {
@@ -170,7 +170,7 @@ public partial class MainWindow : Window
                     {
                         await _viewModel.UpdateTaskAsync(dialog.ResultTask);
                         UpdateTaskCount();
-                        UpdateStatus(_viewModel.StatusMessage);
+                        UpdateStatus(_viewModel.StatusMessage ?? "");
                         ShowTaskDetail(dialog.ResultTask);
                     }
                     catch (Exception ex)
@@ -214,7 +214,7 @@ public partial class MainWindow : Window
                 {
                     await _viewModel.DeleteTaskAsync(taskToDelete);
                     UpdateTaskCount();
-                    UpdateStatus(_viewModel.StatusMessage);
+                    UpdateStatus(_viewModel.StatusMessage ?? "");
                     ClearDetail();
                 }
                 catch (Exception ex)
@@ -281,11 +281,11 @@ public partial class MainWindow : Window
             var filteredTasks = _viewModel.Tasks.Where(t => 
                 t.RepeatType switch
                 {
-                    "每天" => "1",
-                    "每周" => "2",
-                    "每月" => "3",
-                    "每季度" => "4",
-                    "每年" => "5",
+                    RepeatType.Daily => "1",
+                    RepeatType.Weekly => "2",
+                    RepeatType.Monthly => "3",
+                    RepeatType.Quarterly => "4",
+                    RepeatType.Yearly => "5",
                     _ => "0"
                 } == _currentFilter).ToList();
             TaskListView.ItemsSource = filteredTasks;
