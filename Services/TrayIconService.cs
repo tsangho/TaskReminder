@@ -28,8 +28,16 @@ public class TrayIconService : IDisposable
             Visibility = Visibility.Visible
         };
 
-        // 设置默认图标（使用系统图标）
-        _trayIcon.IconSource = CreateDefaultIcon();
+        // 尝试加载图标，如果失败则使用内置默认图标
+        try
+        {
+            _trayIcon.IconSource = CreateDefaultIcon();
+        }
+        catch
+        {
+            // 降级：使用任务栏图标（不显示托盘图标）
+            _trayIcon.IconSource = null;
+        }
         
         // 创建上下文菜单
         _trayIcon.ContextMenu = CreateContextMenu();
@@ -44,18 +52,21 @@ public class TrayIconService : IDisposable
     /// <summary>
     /// 创建默认图标
     /// </summary>
-    private System.Windows.Media.ImageSource CreateDefaultIcon()
+    /// <returns>图标图像源，如果加载失败返回 null</returns>
+    private System.Windows.Media.ImageSource? CreateDefaultIcon()
     {
-        // 使用系统信息图标
-        var iconUri = new Uri("pack://application:,,,/Assets/icon.ico", UriKind.Absolute);
+        // 尝试使用系统内置图标
         try
         {
-            return new System.Windows.Media.Imaging.BitmapImage(iconUri);
+            // 使用资源字典中的图标
+            var iconUri = new Uri("pack://application:,,,/TaskReminder;component/Assets/icon.ico", UriKind.Absolute);
+            var bitmap = new System.Windows.Media.Imaging.BitmapImage(iconUri);
+            return bitmap;
         }
         catch
         {
-            // 如果图标加载失败，返回 null
-            return null!;
+            // 如果图标加载失败，返回 null（托盘图标将不显示）
+            return null;
         }
     }
 

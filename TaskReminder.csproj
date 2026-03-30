@@ -6,7 +6,6 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
-    <ApplicationIcon>Assets\icon.ico</ApplicationIcon>
     <AssemblyName>TaskReminder</AssemblyName>
     <RootNamespace>TaskReminder</RootNamespace>
     <Version>1.0.0</Version>
@@ -22,10 +21,6 @@
     <PackageReference Include="Hardcodet.NotifyIcon.Wpf" Version="1.1.0" />
     <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.22621.756" />
     <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.4.231115000" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Resource Include="Assets\icon.ico" />
   </ItemGroup>
 
 </Project>
