@@ -33,7 +33,7 @@ jobs:
       
     # 4. 编译项目
     - name: Build
-      run: dotnet build ${{ env.PROJECT_PATH }} --configuration Release --no-restore
+      run: dotnet build ${{ env.PROJECT_PATH }} --configuration Release
       
     # 5. 运行测试（如果有）
     - name: Test
