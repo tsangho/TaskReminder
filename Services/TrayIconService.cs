@@ -1,5 +1,5 @@
 using System.Windows;
-using Hardcodet.Wpf.TaskbarNotification;
+using Hardcodet.NotifyIcon.Wpf;
 
 namespace TaskReminder.Services;
 
@@ -147,7 +147,10 @@ public class TrayIconService : IDisposable
 
     private void OnExitMenuItemClick(object sender, RoutedEventArgs e)
     {
+        // 重要修复：使用主窗口作为 owner，避免 MessageBox 被托盘菜单的消失带跑
+        var mainWindow = Application.Current.MainWindow;
         var result = System.Windows.MessageBox.Show(
+            mainWindow,
             "确定要退出任务提醒工具吗？",
             "确认退出",
             MessageBoxButton.YesNo,
