@@ -1,5 +1,5 @@
 using System.Windows;
-using Hardcodet.NotifyIcon.Wpf;
+using Hardcodet.Wpf.TaskbarNotification;
 
 namespace TaskReminder.Services;
 
